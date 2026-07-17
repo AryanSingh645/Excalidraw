@@ -1,159 +1,155 @@
-# Turborepo starter
+# Excalidraw (Monorepo)
 
-This Turborepo starter is maintained by the Turborepo core team.
+A real-time collaborative drawing application built as a pnpm + Turborepo monorepo.
+Users sign up / sign in, create drawing "rooms", and collaborate live over WebSockets
+while the web frontend renders the shared canvas.
 
-## Using this example
+> Note: This repo started from the Turborepo starter template, but the boilerplate
+> apps (`docs`, `web`) have been replaced with a custom HTTP auth backend, a
+> WebSocket collaboration backend, and a Next.js frontend.
 
-Run the following command:
+## Tech Stack
 
-```sh
-npx create-turbo@latest
-```
+- **Monorepo**: [Turborepo](https://turborepo.dev/) + [pnpm workspaces](https://pnpm.io/workspaces)
+- **Language**: 100% [TypeScript](https://www.typescriptlang.org/)
+- **HTTP backend**: [Express](https://expressjs.com/) 5 (REST auth + room APIs)
+- **Realtime backend**: [ws](https://github.com/websockets/ws) (WebSocket server)
+- **Frontend**: [Next.js](https://nextjs.org/) 16 + [React](https://react.dev/) 19
+- **Validation**: [Zod](https://zod.dev/) (shared request schemas)
+- **Auth**: [jsonwebtoken](https://github.com/auth0/node-jsonwebtoken) (JWT-based)
+- **Lint / Format**: ESLint 9 + Prettier
 
 ## What's inside?
 
-This Turborepo includes the following packages/apps:
+This monorepo includes the following packages/apps:
 
-### Apps and Packages
+### Apps
 
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
-- `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
+- `apps/web` — Next.js 16 frontend (the drawing canvas UI). Runs on port **3000**.
+- `apps/http-backend` — Express 5 REST API for auth and room management. Runs on port **3000**.
+  - `POST /signup` — register a user (validated with `CreateUserSchema`)
+  - `POST /signin` — authenticate and receive a JWT
+  - `POST /room` — create a room (protected by `authMiddleware`)
+  - `authMiddleware` — verifies the `Authorization` header JWT and attaches `req.userId`
+- `apps/ws-backend` — WebSocket server for realtime collaboration. Runs on port **8080**.
+  - Authenticates connections via a `?token=<jwt>` query param
+  - Closes the socket if the token is missing/invalid or has no `userId`
 
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
+### Packages
 
-### Utilities
+- `@repo/common` — shared Zod schemas and TypeScript types
+  (`CreateUserSchema`, `SignInSchema`, `CreateRoomSchema`)
+- `@repo/backend-common` — shared backend config, exports `JWT_SECRET`
+  (reads `process.env.JWT_SECRET`, falls back to a dev default)
+- `@repo/ui` — shared React component library (`Button`, `Card`, `Code`, …) used by `apps/web`
+- `@repo/eslint-config` — shared ESLint presets (base / next / react-internal)
+- `@repo/typescript-config` — shared `tsconfig.json` bases (base / react-library / nextjs)
 
-This Turborepo has some additional tools already setup for you:
+## Project Structure
 
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
-
-### Build
-
-To build all apps and packages, run the following command:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
-
-```sh
-cd my-turborepo
-turbo build
+```
+.
+├── apps/
+│   ├── web/            # Next.js 16 frontend
+│   ├── http-backend/   # Express 5 REST API (auth + rooms)
+│   └── ws-backend/     # WebSocket realtime server
+├── packages/
+│   ├── common/         # Shared Zod schemas + types
+│   ├── backend-common/ # Shared backend config (JWT_SECRET)
+│   ├── ui/             # Shared React UI components
+│   ├── eslint-config/  # Shared ESLint configs
+│   └── typescript-config/ # Shared tsconfig bases
+├── package.json        # Root scripts (turbo run ...)
+├── pnpm-workspace.yaml # Workspace globs
+├── turbo.json          # Turborepo task pipeline
+└── pnpm-lock.yaml
 ```
 
-Without global `turbo`, use your package manager:
+## Getting Started
+
+### Prerequisites
+
+- [Node.js](https://nodejs.org/) >= 18
+- [pnpm](https://pnpm.io/) >= 9 (`npm i -g pnpm`)
+
+### Install dependencies
 
 ```sh
-cd my-turborepo
-npx turbo build
-pnpm dlx turbo build
-pnpm exec turbo build
+pnpm install
 ```
 
-You can build a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
+### Environment
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
+The HTTP and WebSocket backends read `JWT_SECRET` from the environment
+(defaults to a dev fallback if unset — set it for any non-local use):
 
 ```sh
-turbo build --filter=docs
+export JWT_SECRET="your-secret-here"
 ```
 
-Without global `turbo`:
+## Build
+
+Build all apps and packages:
 
 ```sh
-npx turbo build --filter=docs
-pnpm exec turbo build --filter=docs
-pnpm exec turbo build --filter=docs
+pnpm build          # turbo run build
 ```
 
-### Develop
-
-To develop all apps and packages, run the following command:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
+Build a single app/package with a filter:
 
 ```sh
-cd my-turborepo
-turbo dev
+pnpm exec turbo build --filter=http-backend
 ```
 
-Without global `turbo`, use your package manager:
+## Develop
+
+Run all apps in development mode (Turborepo keeps these persistent/watch):
 
 ```sh
-cd my-turborepo
-npx turbo dev
-pnpm exec turbo dev
-pnpm exec turbo dev
+pnpm dev            # turbo run dev
 ```
 
-You can develop a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
+Run a single app:
 
 ```sh
-turbo dev --filter=web
-```
-
-Without global `turbo`:
-
-```sh
-npx turbo dev --filter=web
 pnpm exec turbo dev --filter=web
-pnpm exec turbo dev --filter=web
 ```
 
-### Remote Caching
-
-> [!TIP]
-> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
-
-Turborepo can use a technique known as [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
-
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
+Individual app commands (run from each app directory):
 
 ```sh
-cd my-turborepo
-turbo login
+# Web frontend
+cd apps/web && pnpm dev          # next dev --port 3000
+
+# HTTP backend
+cd apps/http-backend && pnpm dev # build + node ./dist/index.js (port 3000)
+
+# WebSocket backend
+cd apps/ws-backend && pnpm dev   # build + node ./dist/index.js (port 8080)
 ```
 
-Without global `turbo`, use your package manager:
+## Lint & Format
 
 ```sh
-cd my-turborepo
-npx turbo login
-pnpm exec turbo login
-pnpm exec turbo login
+pnpm lint           # turbo run lint
+pnpm format         # prettier --write "**/*.{ts,tsx,md}"
+pnpm check-types    # turbo run check-types
 ```
 
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
+## Status / TODO
 
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
+This is an early-stage scaffold. The following are stubbed and not yet implemented:
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
-
-```sh
-turbo link
-```
-
-Without global `turbo`:
-
-```sh
-npx turbo link
-pnpm exec turbo link
-pnpm exec turbo link
-```
+- Database calls for user registration / verification (currently hardcoded/mocked)
+- Room persistence and membership
+- Actual canvas drawing broadcast logic over the WebSocket connection
+- Frontend canvas integration with the backends
 
 ## Useful Links
 
-Learn more about the power of Turborepo:
-
-- [Tasks](https://turborepo.dev/docs/crafting-your-repository/running-tasks)
-- [Caching](https://turborepo.dev/docs/crafting-your-repository/caching)
-- [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching)
-- [Filtering](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters)
-- [Configuration Options](https://turborepo.dev/docs/reference/configuration)
-- [CLI Usage](https://turborepo.dev/docs/reference/command-line-reference)
+- [Turborepo Tasks](https://turborepo.dev/docs/crafting-your-repository/running-tasks)
+- [Turborepo Caching](https://turborepo.dev/docs/crafting-your-repository/caching)
+- [Turborepo Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching)
+- [Turborepo Filtering](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters)
+- [Next.js Docs](https://nextjs.org/docs)
+- [Express Docs](https://expressjs.com/)
