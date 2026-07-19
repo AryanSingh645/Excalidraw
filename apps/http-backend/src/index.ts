@@ -137,6 +137,30 @@ app.post("/room", authMiddleware, async (req, res) => {
     }
 })
 
+app.get("/chats/:roomId", authMiddleware, async(req, res) => {
+    try {
+        const roomId = Number(req.params.roomId);
+        console.log("params:", req.params)
+        const messages = await prisma.chat.findMany({
+            where: {roomId},
+            orderBy: {
+                id: "desc"
+            },
+            take: 50
+        })
+        return res.status(201).json({
+            messages,
+            success: true
+        })
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({
+            message: "Error while fetching room chats.",
+            success: false
+        })
+    }
+})
+
 app.listen(3001, () => {
     console.log("Sever Started on localhost:3001")
 })
