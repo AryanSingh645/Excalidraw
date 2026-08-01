@@ -59,6 +59,7 @@ app.post("/signin", async (req, res) => {
     try {
 
         const parsedData = SignInSchema.safeParse(req.body)
+        console.log("parsed Data", parsedData)
         if(!parsedData.success){
             return res.status(400).json({
                 message: "Invalid data",
@@ -156,6 +157,35 @@ app.get("/chats/:roomId", authMiddleware, async(req, res) => {
         console.log(error);
         return res.status(500).json({
             message: "Error while fetching room chats.",
+            success: false
+        })
+    }
+})
+
+app.get("/getRoomIdBySlug/:slug", authMiddleware , async(req, res) => {
+    try {
+        const slug = req.params.slug?.toString();
+        console.log(req.params.slug, slug)
+        if(!slug){
+            return res.status(401).json({
+                success: false,
+                message: "Invalid slug param"
+            })
+        }
+
+        const room = await prisma.room.findUnique({
+            where: {
+                slug
+            }
+        })
+        return res.status(201).json({
+            room,
+            success: true
+        })
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({
+            message: "Error while fetching roomId.",
             success: false
         })
     }

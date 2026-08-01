@@ -37,8 +37,10 @@ wss.on('connection', function connection(ws, request) {
   const token = queryParams.get("token") ?? ""
 
   const userId = checkUser(token)
+  console.log("userId:", userId)
   if(!userId){
     ws.close()
+    console.log("Closing connection")
     return;
   }
 
@@ -48,11 +50,13 @@ wss.on('connection', function connection(ws, request) {
     ws
   })
 
+  console.log("users:", users)
   ws.on('error', console.error);
 
   ws.on('message', async function message(data) {
     try {
       const parsedData = JSON.parse((data as unknown as string))
+      console.log("parsedData", parsedData)
       
       if(parsedData.type === JOIN_ROOM){
         const user = users.find(x => x.ws === ws)
@@ -85,10 +89,12 @@ wss.on('connection', function connection(ws, request) {
             }))
           }
         })
+
+        console.log(JSON.stringify(parsedData.message));
         
         await prisma.chat.create({
           data: {
-            message: parsedData.message,
+            message: JSON.stringify(parsedData.message),
             roomId: Number(parsedData.roomId),
             userId
           }

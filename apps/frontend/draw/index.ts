@@ -1,22 +1,7 @@
-type Shape =
-    {
-        type: "rect";
-        x: number;
-        y: number;
-        width: number;
-        height: number;
-    }
-    | {
-        type: "circle";
-        centerX: number;
-        centerY: number;
-        radius: number;
-      };
+import { Shape } from "@/utils/types";
+import { CHAT } from "@repo/common/constants";
 
-export function initDraw(canvas: HTMLCanvasElement) {
-    const ctx = canvas.getContext("2d");
-
-    let existingShapes : Shape[] = []
+export function initDraw(canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D, socket : WebSocket | null, existingShapes : Shape[]) {
 
     let startX = 0;
     let startY = 0;
@@ -27,8 +12,6 @@ export function initDraw(canvas: HTMLCanvasElement) {
     ctx.lineWidth = 2;
 
     canvas.addEventListener("mousedown", (e) => {
-        console.log("x:", e.clientX);
-        console.log("y:", e.clientY);
         startX = e.clientX;
         startY = e.clientY;
         clicked = true;
@@ -43,6 +26,21 @@ export function initDraw(canvas: HTMLCanvasElement) {
             width: e.clientX - startX,
             height: e.clientY - startY
         })
+        if(socket){
+            console.log("message sent")
+            socket.send(JSON.stringify({
+                message: {
+                    type: "rect",
+                    x: startX,
+                    y: startY,
+                    width: e.clientX - startX,
+                    height: e.clientY - startY
+                },
+                type: CHAT,
+                roomId: 1
+            }))
+        }
+
     });
 
     canvas.addEventListener("mousemove", (e) => {
@@ -56,9 +54,20 @@ export function initDraw(canvas: HTMLCanvasElement) {
             );
         }
     });
+
+    window.addEventListener("mouseup", (e) => {
+        clicked = false;
+        existingShapes.push({
+            type: "rect",
+            x: startX,
+            y: startY,
+            width: e.clientX - startX,
+            height: e.clientY - startY
+        })
+    })
 }
 
-function clearCanvas(ctx : CanvasRenderingContext2D, canvas : HTMLCanvasElement, existingShapes : Shape[]) {
+export function clearCanvas(ctx : CanvasRenderingContext2D, canvas : HTMLCanvasElement, existingShapes : Shape[]) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     existingShapes.forEach((s) => {
         if(s.type == "rect"){
